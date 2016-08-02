@@ -22,28 +22,24 @@ class Poll {
     var poll = this;
     var pollHtml = '<div id="poll_card_'+ this.id +'">';
     pollHtml += '<a href="/polls/'+ this.id +'"><h2>' + this.question + '</h2></a>';
+
     if (poll.user && poll.user.id != currentUser.id){
       pollHtml += '<h5>by <a href="/users/'+ poll.user.id +'">'+ poll.user.username +'</a></h5>';
     } else if(poll.user && poll.user.id === currentUser.id){
       pollHtml += '<h5><a class="edit-poll-options" data-pollid="'+ poll.id +'" href="">Edit Poll Options</a> - <a rel="nofollow" class="delete-poll" data-pollid="'+ poll.id +'" href="">Delete this Poll</a> - Share link: http://localhost:3000/polls/'+ poll.id +'</h5>';
       pollHtml += buildOptionsHtml(poll);
     }
-    pollHtml += '<form method="POST" action="/polls/'+ this.id +'/results" class="poll-form" id="poll_'+ this.id +'" data-pollId="'+ this.id +'">';
-    this.responses.forEach(function(response){
-      pollHtml += '<input type=';
-      if (poll.selectMultiple) {
-        pollHtml += '"checkbox"';
-      } else {
-        pollHtml += '"radio"';
-      }
-      pollHtml += ' name="response[id][]" value="'+ response.id +'">';
-      pollHtml += '<label>'+ response.text +'</label><br>';
-    });
-    pollHtml += '<input name="authenticity_token" value="'+ authToken +'" type="hidden">';
-    pollHtml += '<input type="submit" name="submit">';
-    pollHtml += '</form></div>';
+
+    if (checkIfPollResponded(poll)) {
+      pollHtml += buildPollResponseHtml(poll);
+    } else {
+      pollHtml += buildPollFormHtml(poll);
+    }
+
+    pollHtml += '</div>';
     return pollHtml;
   }
+
 }
 
 class Response {
@@ -71,6 +67,24 @@ function addPollsToDom(){
       }
     }
   });
+}
+
+function buildPollFormHtml(poll){
+  var pollFormHtml = '<form method="POST" action="/polls/'+ poll.id +'/results" class="poll-form" id="poll_'+ poll.id +'" data-pollId="'+ poll.id +'">';
+  poll.responses.forEach(function(response){
+    pollFormHtml += '<input type=';
+    if (poll.selectMultiple) {
+      pollFormHtml += '"checkbox"';
+    } else {
+      pollFormHtml += '"radio"';
+    }
+    pollFormHtml += ' name="response[id][]" value="'+ response.id +'">';
+    pollFormHtml += '<label>'+ response.text +'</label><br>';
+  });
+  pollFormHtml += '<input name="authenticity_token" value="'+ authToken +'" type="hidden">';
+  pollFormHtml += '<input type="submit" name="submit">';
+  pollFormHtml += '</form>';
+  return pollFormHtml;
 }
 
 function buildOptionsHtml(poll){
@@ -264,6 +278,16 @@ function submitNewPoll(){
     }).fail(function(error){
       });
   });
+}
+
+function checkIfPollResponded(poll){
+  var pollResponded = false;
+  currentUser.votes.forEach(function(vote){
+    if (vote.poll.id === poll.id) {
+      pollResponded = true;
+    }
+  }); 
+  return pollResponded;
 }
 
 $(document).ready(function(){

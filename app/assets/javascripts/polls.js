@@ -33,27 +33,13 @@ class Poll {
     this.user = user;
   }
 
-  buildPollHtml(){
-    var poll = this;
-    var pollHtml = '<div id="poll_card_'+ this.id +'">';
-    pollHtml += '<a href="/polls/'+ this.id +'"><h2>' + this.question + '</h2></a>';
-
-    if (poll.user && poll.user.id != currentUser.id){
-      pollHtml += '<h5>by <a href="/users/'+ poll.user.id +'">'+ poll.user.username +'</a></h5>';
-    } else if(poll.user && poll.user.id === currentUser.id){
-      pollHtml += '<h5><a class="edit-poll-options" data-pollid="'+ poll.id +'" href="">Edit Poll Options</a> - <a rel="nofollow" class="delete-poll" data-pollid="'+ poll.id +'" href="">Delete this Poll</a> - Share link: http://localhost:3000/polls/'+ poll.id +'</h5>';
-      pollHtml += buildOptionsHtml(poll);
-    }
-
-    if (checkIfPollResponded(poll)) {
-      pollHtml += buildPollResponseHtml(poll);
-    } else {
-      pollHtml += buildPollFormHtml(poll);
-    }
-
-    pollHtml += '</div>';
-    return pollHtml;
-  }
+  voteTotal(){
+    var total = 0;
+    this.responses.forEach(function(response){
+      total += response.selected;
+    });
+    return total;
+  } 
 }
 
 // Object Creation
@@ -72,7 +58,28 @@ function createResponses(responses){
   return responseObjects;
 }
 
-//html builders
+//html builders, Should these be moved into the prototype?
+
+function buildPollHtml(poll){
+  var pollHtml = '<div id="poll_card_'+ poll.id +'">';
+  pollHtml += '<a href="/polls/'+ poll.id +'"><h2>' + poll.question + '</h2></a>';
+
+  if (poll.user && poll.user.id != currentUser.id){
+    pollHtml += '<h5>by <a href="/users/'+ poll.user.id +'">'+ poll.user.username +'</a></h5>';
+  } else if(poll.user && poll.user.id === currentUser.id){
+    pollHtml += '<h5><a class="edit-poll-options" data-pollid="'+ poll.id +'" href="">Edit Poll Options</a> - <a rel="nofollow" class="delete-poll" data-pollid="'+ poll.id +'" href="">Delete this Poll</a> - Share link: http://localhost:3000/polls/'+ poll.id +'</h5>';
+    pollHtml += buildOptionsHtml(poll);
+  }
+
+  if (checkIfPollResponded(poll)) {
+    pollHtml += buildPollResponseHtml(poll);
+  } else {
+    pollHtml += buildPollFormHtml(poll);
+  }
+
+  pollHtml += '</div>';
+  return pollHtml;
+}
 
 function buildPollFormHtml(poll){
   var pollFormHtml = '<form method="POST" action="/polls/'+ poll.id +'/results" class="poll-form" id="poll_'+ poll.id +'" data-pollId="'+ poll.id +'">';
@@ -115,15 +122,13 @@ function buildOptionsHtml(poll){
 }
 
 function buildPollResponseHtml(poll){
-  var total = 0;
   var responseHtml = '<div>';
   responseHtml += '<ul>';
   poll.responses.forEach(function(response){
-    total += response.selected;
     responseHtml += '<li>' + response.text + ': ' + response.selected + '  votes'
   });
   responseHtml += '</ul>';
-  responseHtml += '<p>Total votes: '+ total +'</p>'
+  responseHtml += '<p>Total votes: '+ poll.voteTotal() +'</p>'
   responseHtml += '</div>';
   return responseHtml;
 }
@@ -174,7 +179,7 @@ function submitPollOptionsEdit(){
       method: 'PUT',
       success: function(poll){
         var updatedPoll = createPollObject(poll);
-        $('#poll_card_' + poll.id ).html(updatedPoll.buildPollHtml());
+        $('#poll_card_' + poll.id ).html(buildPollHtml(updatedPoll));
 
         attachPollListeners();
       }
@@ -225,7 +230,7 @@ function submitNewPoll(){
 
     $.post('/polls', newPoll, function(poll){
       var newSavedPoll = createPollObject(poll);
-      $('.new-poll-form').html(newSavedPoll.buildPollHtml())
+      $('.new-poll-form').html(buildPollHtml(newSavedPoll))
     }).fail(function(error){
       });
   });
@@ -247,7 +252,8 @@ function respondToPoll(){
     });
 
     $.post('/polls/' + pollId + '/results', response, function(poll){
-      $('#poll_' + pollId).html(buildPollResponseHtml(poll));  
+      var respondedPoll = createPollObject(poll)
+      $('#poll_' + pollId).html(buildPollResponseHtml(respondedPoll));  
     }).fail(function(error, b, c){
       alert('This didn\'t work');
     });
@@ -281,7 +287,7 @@ function loadPolls(){
     return i > maxPollsInDom - 6 && i < maxPollsInDom;
   });
   filteredPolls.forEach(function(poll){
-    $('#polls-list').append(poll.buildPollHtml());
+    $('#polls-list').append(buildPollHtml(poll));
   });
 
   attachPollListeners();

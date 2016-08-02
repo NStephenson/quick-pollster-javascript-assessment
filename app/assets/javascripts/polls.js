@@ -6,6 +6,21 @@ var authToken = $('meta[name="csrf-token"]').attr('content');
 var currentUser;
 var allPolls = [];
 
+class Response {
+  constructor(id, text, selected){
+    this.id = id;
+    this.text = text;
+    this.selected = selected;
+  }
+}
+
+class User {
+  constructor(id, username) {
+    this.id = id;
+    this.username = username;
+  }
+}
+
 class Poll {
   constructor(id, question, published, selectMultiple, publicResults, open, responses, user) {
     this.id = id;
@@ -39,35 +54,25 @@ class Poll {
     pollHtml += '</div>';
     return pollHtml;
   }
-
 }
 
-class Response {
-  constructor(id, text, selected){
-    this.id = id;
-    this.text = text;
-    this.selected = selected;
-  }
+// Object Creation
+
+function createPollObject(poll){
+  var user = new User(poll.user.id, poll.user.username);
+  var pollObject = new Poll(poll.id, poll.question, poll.published, poll.select_multiple, poll.public_results, poll.open, createResponses(poll.responses), user);
+  return pollObject;
 }
 
-class User {
-  constructor(id, username) {
-    this.id = id;
-    this.username = username;
-  }
-}
-
-function addPollsToDom(){
-  $('#see-more-polls').click(function(){
-    if(maxPollsInDom < allPolls.length){
-      maxPollsInDom += 5;
-      loadPolls();
-      if(maxPollsInDom >= allPolls.length){
-        $('#polls-list').append('<p>End of the Line. No More Polls.</p>');
-      }
-    }
+function createResponses(responses){
+  var responseObjects = [];
+  responses.forEach(function(response){
+    responseObjects.push(new Response(response.id, response.text, response.selected))
   });
+  return responseObjects;
 }
+
+//html builders
 
 function buildPollFormHtml(poll){
   var pollFormHtml = '<form method="POST" action="/polls/'+ poll.id +'/results" class="poll-form" id="poll_'+ poll.id +'" data-pollId="'+ poll.id +'">';
@@ -109,28 +114,46 @@ function buildOptionsHtml(poll){
   return optionsHtml;
 }
 
-function loadPolls(){
-  var filteredPolls = allPolls.filter(function(poll, i){
-    return i > maxPollsInDom - 6 && i < maxPollsInDom;
+function buildPollResponseHtml(poll){
+  var total = 0;
+  var responseHtml = '<div>';
+  responseHtml += '<ul>';
+  poll.responses.forEach(function(response){
+    total += response.selected;
+    responseHtml += '<li>' + response.text + ': ' + response.selected + '  votes'
   });
-  filteredPolls.forEach(function(poll){
-    $('#polls-list').append(poll.buildPollHtml());
-  });
-
-  attachPollListeners();
+  responseHtml += '</ul>';
+  responseHtml += '<p>Total votes: '+ total +'</p>'
+  responseHtml += '</div>';
+  return responseHtml;
 }
 
-function getCurrentUser(){
-  $.get('/current_user', function(user){
-    currentUser = user;
-  });
+// html helper functions
+
+function checkIfPollResponded(poll){
+  var pollResponded = false;
+  currentUser.votes.forEach(function(vote){
+    if (vote.poll.id === poll.id) {
+      pollResponded = true;
+    }
+  }); 
+  return pollResponded;
 }
 
-function attachPollListeners(){
-  respondToPoll();
-  editPollOptionsToggle();
-  submitPollOptionsEdit();
-  deletePoll();
+function htmlCheckedForOption(option){
+  if (option) {
+    return 'checked="checked"';
+  } 
+}
+
+// Poll Editing Functions
+
+function editPollOptionsToggle(){
+  $('.edit-poll-options').click(function(e){
+    e.preventDefault();
+    var pollId = $(this).data().pollid;
+    $('#edit-poll-' + pollId ).toggle();
+  });
 }
 
 function submitPollOptionsEdit(){
@@ -159,6 +182,8 @@ function submitPollOptionsEdit(){
   });
 }
 
+// Poll Deletion Functions
+
 function deletePoll(){
   $('.delete-poll').click(function(e){
     e.preventDefault();
@@ -177,81 +202,7 @@ function removePollFromDom(pollId){
   $('#poll_card_' + pollId).html('<p>This Poll has been deleted.</p>');
 }
 
-function editPollOptionsToggle(){
-  $('.edit-poll-options').click(function(e){
-    e.preventDefault();
-    var pollId = $(this).data().pollid;
-    $('#edit-poll-' + pollId ).toggle();
-  });
-}
-
-function respondToPoll(){
-  $('.poll-form').submit(function(e){
-    e.preventDefault();
-
-    var pollId = $(this).data().pollid;
-    var response = {};
-    response.response = {};
-    response.response.id = [];
-
-    $(':checked').each(function(i,resp){
-      response.response.id.push( $(resp).val() );
-    });
-
-    $.post('/polls/' + pollId + '/results', response, function(poll){
-      $('#poll_' + pollId).html(buildPollResponseHtml(poll));  
-    }).fail(function(error, b, c){
-      alert('This didn\'t work');
-    });
-
-  });
-}
-
-function buildPollResponseHtml(poll){
-  var total = 0;
-  var responseHtml = '<div>';
-  responseHtml += '<ul>';
-  poll.responses.forEach(function(response){
-    total += response.selected;
-    responseHtml += '<li>' + response.text + ': ' + response.selected + '  votes'
-  });
-  responseHtml += '</ul>';
-  responseHtml += '<p>Total votes: '+ total +'</p>'
-  responseHtml += '</div>';
-  return responseHtml;
-}
-
-function htmlCheckedForOption(option){
-  if (option) {
-    return 'checked="checked"';
-  } 
-}
-
-function getPolls(){
-  allPolls = [];
-  $.get('/polls', function(polls){
-    polls.forEach(function(poll){
-      allPolls.push(createPollObject(poll));
-    });
-  $('#polls-list').html('');
-    loadPolls();
-  });
-}
-
-function createPollObject(poll){
-  var user = new User(poll.user.id, poll.user.username);
-  var pollObject = new Poll(poll.id, poll.question, poll.published, poll.select_multiple, poll.public_results, poll.open, createResponses(poll.responses), user);
-  return pollObject;
-}
-
-function createResponses(responses){
-  var responseObjects = [];
-  responses.forEach(function(response){
-    responseObjects.push(new Response(response.id, response.text, response.selected))
-  });
-  return responseObjects;
-}
-
+// New Poll Creation
 
 function submitNewPoll(){
   $('#new_poll').submit(function(e){
@@ -280,15 +231,82 @@ function submitNewPoll(){
   });
 }
 
-function checkIfPollResponded(poll){
-  var pollResponded = false;
-  currentUser.votes.forEach(function(vote){
-    if (vote.poll.id === poll.id) {
-      pollResponded = true;
-    }
-  }); 
-  return pollResponded;
+// Responding To a poll
+
+function respondToPoll(){
+  $('.poll-form').submit(function(e){
+    e.preventDefault();
+
+    var pollId = $(this).data().pollid;
+    var response = {};
+    response.response = {};
+    response.response.id = [];
+
+    $(':checked').each(function(i,resp){
+      response.response.id.push( $(resp).val() );
+    });
+
+    $.post('/polls/' + pollId + '/results', response, function(poll){
+      $('#poll_' + pollId).html(buildPollResponseHtml(poll));  
+    }).fail(function(error, b, c){
+      alert('This didn\'t work');
+    });
+
+  });
 }
+
+// Page Population
+
+function addPollsToDom(){
+  $('#see-more-polls').click(function(){
+    if(maxPollsInDom < allPolls.length){
+      maxPollsInDom += 5;
+      loadPolls();
+      if(maxPollsInDom >= allPolls.length){
+        $('#polls-list').append('<p>End of the Line. No More Polls.</p>');
+      }
+    }
+  });
+}
+
+function attachPollListeners(){
+  respondToPoll();
+  editPollOptionsToggle();
+  submitPollOptionsEdit();
+  deletePoll();
+}
+
+function loadPolls(){
+  var filteredPolls = allPolls.filter(function(poll, i){
+    return i > maxPollsInDom - 6 && i < maxPollsInDom;
+  });
+  filteredPolls.forEach(function(poll){
+    $('#polls-list').append(poll.buildPollHtml());
+  });
+
+  attachPollListeners();
+}
+
+function getPolls(){
+  allPolls = [];
+  $.get('/polls', function(polls){
+    polls.forEach(function(poll){
+      allPolls.push(createPollObject(poll));
+    });
+  $('#polls-list').html('');
+    loadPolls();
+  });
+}
+
+//Get current User
+
+function getCurrentUser(){
+  $.get('/current_user', function(user){
+    currentUser = user;
+  });
+}
+
+// Doc Ready 
 
 $(document).ready(function(){
   submitNewPoll();

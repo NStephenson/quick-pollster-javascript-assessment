@@ -1,1 +1,3 @@
-<%= render partial: "poll", locals: {poll: @poll, survey: false} %>
+<script type="text/javascript">getPoll(<%= @poll.id %>)</script>
+
+<div id="poll"></div>

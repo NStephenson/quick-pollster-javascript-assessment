@@ -29,11 +29,14 @@ class PollsController < ApplicationController
       @poll = Poll.find(params[:id])
     end
 
-    if signed_in?
-      redirect_to poll_results_path(@poll) if current_user.polls_responded.include?(@poll)
-    end
+    # if signed_in?
+    #   redirect_to poll_results_path(@poll) if current_user.polls_responded.include?(@poll)
+    # end
 
-    # redirect_to survey_path(@poll.survey) if @poll.limit_to_survey 
+    respond_to do |format|
+      format.json {render json: @poll}
+      format.html {render :show}
+    end
   end
 
   def results
@@ -66,7 +69,7 @@ class PollsController < ApplicationController
     if @poll.save
       flash[:notice] = "Poll options updated!"
       respond_to do |format|
-        format.json {render json: @polls}
+        format.json {render json: @poll}
         format.html {redirect_to poll_path(@poll)}
       end
     else

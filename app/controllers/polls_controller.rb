@@ -65,7 +65,10 @@ class PollsController < ApplicationController
     @poll.update(edit_poll_params)
     if @poll.save
       flash[:notice] = "Poll options updated!"
-      render json: @poll
+      respond_to do |format|
+        format.json {render json: @polls}
+        format.html {redirect_to poll_path(@poll)}
+      end
     else
       flash[:error] = "Somehow, you managed to fuck up. Congrats."
       render action: 'edit'

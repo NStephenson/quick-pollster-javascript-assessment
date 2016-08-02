@@ -71,7 +71,7 @@ function buildPollHtml(poll){
     pollHtml += buildOptionsHtml(poll);
   }
 
-  if (checkIfPollResponded(poll)) {
+  if (poll.closed || checkIfPollResponded(poll)) {
     pollHtml += buildPollResponseHtml(poll);
   } else {
     pollHtml += buildPollFormHtml(poll);
@@ -301,6 +301,15 @@ function getPolls(){
     });
   $('#polls-list').html('');
     loadPolls();
+  });
+}
+
+function getPoll(id){
+  $.get('/polls/' + id, function(poll){
+    console.log(poll);
+    var fetchedPoll = createPollObject(poll);
+    $('#poll').html(buildPollHtml(fetchedPoll));
+    attachPollListeners();
   });
 }
 

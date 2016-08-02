@@ -18,9 +18,6 @@ questions = Poll.create([
   {question: "Does Anderson Paak sound like Kendrick Lamar?", user_id: 1}
 ])
 
-Survey.create(name: 'Views on Art')
-Survey.create(name: 'Simpsons vs Futurama')
-
 questions[0].responses.create([
   {text: 'paintings', selected: Random.rand(51)}, 
   {text: 'music', selected: Random.rand(51)}, 
@@ -92,15 +89,4 @@ questions[9].responses.create([
 questions[10].responses.create([
   {text: 'yes', selected: Random.rand(51)}, 
   {text: 'no', selected: Random.rand(51)}
-])
-
-
-PollSurvey.create([
-  {poll_id: 1, survey_id: 1},
-  {poll_id: 2, survey_id: 1},
-  {poll_id: 3, survey_id: 1},
-  {poll_id: 4, survey_id: 1},
-  {poll_id: 5, survey_id: 1},
-  {poll_id: 8, survey_id: 2},
-  {poll_id: 9, survey_id: 2}
 ])

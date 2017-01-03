@@ -1,3 +1,7 @@
-<script type="text/javascript">getPoll(<%= @poll.id %>)</script>
+<script type="text/javascript">
+  $(document).ready(function(){
+    getPoll(<%= @poll.id %>)
+  });
+</script>
 
 <div id="poll"></div>

@@ -6,6 +6,26 @@ var authToken = $('meta[name="csrf-token"]').attr('content');
 var currentUser;
 var allPolls = [];
 
+
+var Pollx = function(responses){
+  this.responses = responses;
+}
+
+Pollx.prototype.countResponse = function(){
+  return this.responses.length;
+}
+
+
+function countPolls(){
+  var pollList = new Pollx(allPolls);
+  return pollList.countResponse();
+}
+
+function insertPollCountToDom(){
+  $('#poll-count').append('<h1>Poll Count:' + countPolls() + '</h1>');
+}
+
+
 class Response {
   constructor(id, text, selected){
     this.id = id;
@@ -300,7 +320,8 @@ function getPolls(){
       allPolls.push(createPollObject(poll));
     });
   $('#polls-list').html('');
-    loadPolls();
+  loadPolls();
+  insertPollCountToDom();
   });
 }
 
